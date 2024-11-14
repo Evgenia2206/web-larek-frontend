@@ -1,23 +1,35 @@
 import { ApiPostMethods } from '../components/base/api'
 
 // Тип способа оплаты
-type TPayment = 'online' | 'receipt';
+export type TPayment = 'card' | 'cash';
 
 // Тип категории товара
-type TCategory = 'другое' | 'софт-скил'	| 'дополнительное'	| 'кнопка'	| 'хард-скил';
+//type TCategory = 'другое' | 'софт-скил'	| 'дополнительное'	| 'кнопка'	| 'хард-скил';
+
+// Тип товара в корзине
+export type TBasketProduct = Pick<IProduct, 'id' | 'title' | 'price'>;
+
+// Тип формы заказа с оплатой и адресом доставки
+export type TOrderDelivery = Pick<IOrder, 'payment' | 'address'>;
+
+// Тип формы заказа с контактными данными
+export type TOrderContacts = Pick<IOrder, 'email' | 'phone'>;
+
+// Тип поля ввода формы заказа
+export type TOrderInput = Pick<IOrder,	'payment' | 'address' | 'email' | 'phone'>;
 
 // Тип ошибки в форме
-type TFormErrors = Partial<Record<keyof IOrder, string>>;
+export type TFormErrors = Partial<Record<keyof IOrder, string>>;
 
 // Интерфейс API-клиента
-interface IApi {
+export interface IApi {
 	baseUrl: string;
 	get<T>(uri: string): Promise<T>;
 	post<T>(uri: string, data: object, method?: ApiPostMethods): Promise<T>;
 }
 
 // Интерфейс для работы с карточкой товара
-interface IProduct {
+export interface IProduct {
 	id: string;
     title: string;
     category: string;
@@ -27,45 +39,96 @@ interface IProduct {
     selected: boolean;
 }
 
-// Интерфейс для работы с корзиной
-interface ICart {
-    cartProducts: IProduct[];
-    productsCost: number;
+// Интерфейс для работы со списком товаров
+export interface IProductData {
+	products: IProduct[];
+	preview: string | null;
+	setProducts(products: IProduct[]): void;
+	getProducts(): IProduct[];
+	getProduct(id: string): IProduct;
+	savePreview(product: IProduct): void;
 }
 
-// Интерфейс для работы с заказом
-interface IOrder {
-    order: ICart;
+// Интерфейс корзины
+export interface IBasket {
+    items: TBasketProduct[];
+    total: number | null;
+}
+
+// Интерфейс для работы с корзиной
+export interface IBasketData {
+	products: TBasketProduct[];
+	addToBasket(product: IProduct): void;
+	removeFromBasket(product: IProduct): void;
+    getButtonState(product: TBasketProduct): string;
+	getProductsCost(): number;
+	clearBasket(): void;
+	//processBasketToOrder(orderData: IOrderData): void;
+}
+
+// Интерфейс заказа
+export interface IOrder {
+    order: IBasket[];
     payment: string;
     address: string;
 	email: string; 
 	phone: string; 
 }
 
+// Интерфейс для работы с заказом
+export interface IOrderData {
+	formErrors: TFormErrors;
+	order: IOrder;
+	setPayment(value: string): void;
+    setDeliveryAddress(value: string): void;
+	setEmail(value: string): void;
+    setPhone(value: string): void;
+	setOrderField(field: keyof TOrderInput, value: string): void;
+	validateOrder(): boolean;
+	clearOrder(): void;
+}
+
 // Интерфейс главной страницы товаров
-interface IMainPage {
-    cartCounter: number;
-    products: HTMLElement[];
+export interface IMainPage {
+    counter: number;
+    catalogue: HTMLElement[];
     locked: boolean;
 }
 
 // Интерфейс модального окна
-interface IModal {
+export interface IModal {
     content: HTMLElement;
 }
 
+// Интерфейс карточки товара
+export interface ICard {
+	id: HTMLElement;
+	title: HTMLElement;
+	category: HTMLElement;
+	description: HTMLElement;
+	image: HTMLImageElement;
+	price: HTMLElement;
+	button: HTMLButtonElement;
+	index: HTMLElement;
+}
+
+// Интерфейс работы с карточкой
+export interface ICardActions {
+    onClick: (event: MouseEvent) => void;
+}
+
 // Интерфейс проверки заполнения формы
-interface IFormState {
+export interface IFormState {
     valid: boolean;
     errors: string[];
 }
 
 // Интерфейс подтверждения заказа
-interface IOrderProcessed {
-	orderCost: number;
+export interface IOrderProcessed {
+	total: number;
 }
 
 // Интерфейс продолжения работы с приложением
-interface IOrderProcessedActions {
+export interface IOrderProcessedActions {
     onClick: () => void;
 }

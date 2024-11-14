@@ -1,1 +1,213 @@
 import './scss/styles.scss';
+import { IEvents, EventEmitter } from './components/base/events';
+import { ProductData } from './components/model/ProductData';
+import { BasketData } from './components/model/BasketData';
+import { OrderData } from './components/model/OrderData';
+import { API_URL, CDN_URL } from './utils/constants';
+import { Api } from './components/base/api';
+import { ensureElement, cloneTemplate } from './utils/utils';
+import { CardUI } from './components/view/CardUI';
+import { ModalUI } from './components/view/ModalUI';
+import { IApi, IProduct, IOrder, TPayment } from './types/index';
+import { AppApi } from './components/AppApi';
+import { MainPageUI } from './components/view/MainPageUI';
+import { BasketUI } from './components/view/BasketUI';
+import { OrderContactsUI } from './components/view/OrderContactsUI';
+import { OrderDeliveryUI } from './components/view/OrderDeliveryUI';
+import { OrderProcessedUI } from './components/view/OrderProcessedUI';
+
+const baseApi = new Api(API_URL);
+const api = new AppApi(CDN_URL, baseApi);
+const events: IEvents = new EventEmitter();
+
+const productData = new ProductData(events);
+const basketData = new BasketData(events);
+const orderData = new OrderData(events);
+
+const orderSuccessTemplate = ensureElement<HTMLTemplateElement>('#success');
+const cardCatalogTemplate = ensureElement<HTMLTemplateElement>('#card-catalog');
+const cardPreviewTemplate = ensureElement<HTMLTemplateElement>('#card-preview');
+const cardBasketTemplate = ensureElement<HTMLTemplateElement>('#card-basket');
+const basketTemplate = ensureElement<HTMLTemplateElement>('#basket');
+const orderTemplate = ensureElement<HTMLTemplateElement>('#order');
+const contactsTemplate = ensureElement<HTMLTemplateElement>('#contacts');
+const modalContainerTemplate =
+	ensureElement<HTMLTemplateElement>('#modal-container');
+const body = document.body;
+
+const page = new MainPageUI(body, events);
+const modal = new ModalUI(modalContainerTemplate, events);
+const basket = new BasketUI(cloneTemplate(basketTemplate), events);
+const contactForm = new OrderContactsUI(cloneTemplate(contactsTemplate), events);
+const orderForm = new OrderDeliveryUI(cloneTemplate(orderTemplate), events);
+
+events.on('card:change', () => {
+	page.counter = basketData.products.length;
+	page.catalogue = productData.products.map((product) => {
+		const card = new CardUI(cloneTemplate(cardCatalogTemplate), {
+			onClick: () => {
+				events.emit('card:selected', product);
+			},
+		});
+		return card.render({
+			id: product.id,
+			image: product.image,
+			title: product.title,
+			category: product.category,
+			price: product.price,
+		});
+	});
+});
+
+events.on('card:selected', (product: IProduct) => {
+	productData.savePreview(product);
+});
+
+events.on('preview:change', (product: IProduct) => {
+	const card = new CardUI(cloneTemplate(cardPreviewTemplate), {
+		onClick: () => {
+			events.emit('card:basket', product);
+			events.emit('preview:change', product);
+			modal.close();
+		},
+	});
+
+	modal.render({
+		content: card.render({
+			id: product.id,
+			category: product.category,
+			description: product.description,
+			image: product.image,
+			price: product.price,
+			title: product.title,
+			buttonText: basketData.getButtonState(product),
+		}),
+	});
+});
+
+events.on('card:basket', (product: IProduct) => {
+	basketData.isBasketProduct(product);
+});
+
+events.on('basket:open', () => {
+	modal.render({
+		content: basket.render(),
+	});
+});
+
+events.on('basket:change', () => {
+	page.counter = basketData.products.length;
+	basket.total = basketData.getProductsCost();
+	basket.items = basketData.products.map((basketCard, index) => {
+		const newBasketCard = new CardUI(cloneTemplate(cardBasketTemplate), {
+			onClick: () => {
+				basketData.removeFromBasket(basketCard);
+			},
+		});
+		newBasketCard.index = index + 1;
+		return newBasketCard.render({
+			title: basketCard.title,
+			price: basketCard.price,
+		});
+	});
+});
+
+events.on('modal:open', () => {
+	page.locked = true;
+});
+
+events.on('modal:close', () => {
+	page.locked = false;
+});
+
+events.on('order:open', () => {
+	modal.render({
+		content: orderForm.render({
+			address: '',
+			valid: false,
+			errors: [],
+		}),
+	});
+});
+
+events.on(
+	/^order\..*:change/,
+	(data: {
+		field: keyof Pick<IOrder, 'address' | 'phone' | 'email'>;
+		value: string;
+	}) => {
+		orderData.setOrderField(data.field, data.value);
+	}
+);
+
+events.on(
+	'order:change',
+	(data: { payment: TPayment; button: HTMLElement }) => {
+		orderForm.togglePayment(data.button);
+		orderData.setPayment(data.payment);
+		orderData.validateOrder();
+	}
+);
+
+events.on('errors:change', (errors: Partial<IOrder>) => {
+	const { email, phone, address, payment } = errors;
+
+	orderForm.valid = !(payment || address);
+	orderForm.errors = [payment, address].filter(Boolean).join('; ');
+
+	contactForm.valid = !(email || phone);
+	contactForm.errors = [email, phone].filter(Boolean).join('; ');
+});
+
+events.on('order:submit', () => {
+	modal.render({
+		content: contactForm.render({
+			phone: '',
+			email: '',
+			valid: false,
+			errors: [],
+		}),
+	});
+});
+
+/*events.on('contacts:submit', () => {
+	basketData.sendBasketToOrder(orderData);
+
+	api
+		.orderProducts(orderData.order)
+		.then((result) => {
+			const success = new OrderProcessedUI(cloneTemplate(orderSuccessTemplate), {
+				onClick: () => {
+					modal.close();
+				},
+			});
+			basketData.clearBasket();
+			orderData.clearOrder();
+			modal.render({
+				content: success.render({
+					total: result.total,
+				}),
+			});
+		})
+
+		.catch((error) => {
+			console.error(`Произошла ошибка при отправке заказа: ${error}`);
+			alert(
+				'Произошла ошибка при отправке заказа. Пожалуйста, попробуйте позже.'
+			);
+		});
+});*/
+
+api
+	.getProducts()
+	.then((response) => {
+		Array.isArray(response)
+			? productData.setProducts(response)
+			: console.error('Получен некорректный список продуктов', response);
+	})
+	.catch((error) => {
+		console.error(`Произошла ошибка при получении списка продуктов: ${error}`);
+		alert(
+			'Произошла ошибка при получении списка продуктов. Пожалуйста, попробуйте позже.'
+		);
+	});
