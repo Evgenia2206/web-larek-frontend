@@ -7,7 +7,7 @@ export class MainPageUI extends Component<IMainPage> {
     protected _counter: HTMLElement;
     protected _catalogue: HTMLElement;
     protected _wrapper: HTMLElement;
-    protected _cart: HTMLElement;
+    protected _basket: HTMLElement;
 
 
     constructor(container: HTMLElement, protected events: IEvents) {
@@ -16,10 +16,10 @@ export class MainPageUI extends Component<IMainPage> {
         this._counter = ensureElement<HTMLElement>('.header__basket-counter');
         this._catalogue = ensureElement<HTMLElement>('.gallery');
         this._wrapper = ensureElement<HTMLElement>('.page__wrapper');
-        this._cart = ensureElement<HTMLElement>('.header__basket');
+        this._basket = ensureElement<HTMLElement>('.header__basket');
 
-        this._cart.addEventListener('click', () => {
-            this.events.emit('cart:open');
+        this._basket.addEventListener('click', () => {
+            this.events.emit('basket:open');
         });
     }
 

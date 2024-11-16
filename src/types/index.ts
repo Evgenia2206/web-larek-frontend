@@ -21,13 +21,6 @@ export type TOrderInput = Pick<IOrder,	'payment' | 'address' | 'email' | 'phone'
 // Тип ошибки в форме
 export type TFormErrors = Partial<Record<keyof IOrder, string>>;
 
-// Интерфейс API-клиента
-export interface IApi {
-	baseUrl: string;
-	get<T>(uri: string): Promise<T>;
-	post<T>(uri: string, data: object, method?: ApiPostMethods): Promise<T>;
-}
-
 // Интерфейс для работы с карточкой товара
 export interface IProduct {
 	id: string;
@@ -68,7 +61,8 @@ export interface IBasketData {
 
 // Интерфейс заказа
 export interface IOrder {
-    order: IBasket[];
+    items: string[];
+	total: number;
     payment: string;
     address: string;
 	email: string; 
@@ -102,14 +96,14 @@ export interface IModal {
 
 // Интерфейс карточки товара
 export interface ICard {
-	id: HTMLElement;
-	title: HTMLElement;
-	category: HTMLElement;
-	description: HTMLElement;
-	image: HTMLImageElement;
-	price: HTMLElement;
-	button: HTMLButtonElement;
-	index: HTMLElement;
+	id: string;
+	title: string;
+	category: string;
+	description: string;
+	image: string;
+	price: number | null;
+	button: string;
+	index: string;
 }
 
 // Интерфейс работы с карточкой
@@ -132,3 +126,10 @@ export interface IOrderProcessed {
 export interface IOrderProcessedActions {
     onClick: () => void;
 }
+
+//
+export interface IApi {
+	getProducts: () => Promise<IProduct[]>;
+	getProduct: (id: string) => Promise<IProduct>;
+	orderProducts: (order: IOrder) =>  Promise<IOrderProcessed>
+  }

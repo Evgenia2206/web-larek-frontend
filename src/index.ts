@@ -4,11 +4,10 @@ import { ProductData } from './components/model/ProductData';
 import { BasketData } from './components/model/BasketData';
 import { OrderData } from './components/model/OrderData';
 import { API_URL, CDN_URL } from './utils/constants';
-import { Api } from './components/base/api';
 import { ensureElement, cloneTemplate } from './utils/utils';
 import { CardUI } from './components/view/CardUI';
 import { ModalUI } from './components/view/ModalUI';
-import { IApi, IProduct, IOrder, TPayment } from './types/index';
+import { IProduct, IOrder, TPayment } from './types/index';
 import { AppApi } from './components/AppApi';
 import { MainPageUI } from './components/view/MainPageUI';
 import { BasketUI } from './components/view/BasketUI';
@@ -16,8 +15,7 @@ import { OrderContactsUI } from './components/view/OrderContactsUI';
 import { OrderDeliveryUI } from './components/view/OrderDeliveryUI';
 import { OrderProcessedUI } from './components/view/OrderProcessedUI';
 
-const baseApi = new Api(API_URL);
-const api = new AppApi(CDN_URL, baseApi);
+const api = new AppApi(CDN_URL, API_URL);
 const events: IEvents = new EventEmitter();
 
 const productData = new ProductData(events);
@@ -31,22 +29,20 @@ const cardBasketTemplate = ensureElement<HTMLTemplateElement>('#card-basket');
 const basketTemplate = ensureElement<HTMLTemplateElement>('#basket');
 const orderTemplate = ensureElement<HTMLTemplateElement>('#order');
 const contactsTemplate = ensureElement<HTMLTemplateElement>('#contacts');
-const modalContainerTemplate =
-	ensureElement<HTMLTemplateElement>('#modal-container');
+const modalContainerTemplate = ensureElement<HTMLTemplateElement>('#modal-container');
 const body = document.body;
 
-const page = new MainPageUI(body, events);
+const page = new MainPageUI(document.body, events);
 const modal = new ModalUI(modalContainerTemplate, events);
 const basket = new BasketUI(cloneTemplate(basketTemplate), events);
 const contactForm = new OrderContactsUI(cloneTemplate(contactsTemplate), events);
-const orderForm = new OrderDeliveryUI(cloneTemplate(orderTemplate), events);
+const deliveryForm = new OrderDeliveryUI(cloneTemplate(orderTemplate), events);
 
-events.on('card:change', () => {
-	page.counter = basketData.products.length;
-	page.catalogue = productData.products.map((product) => {
+events.on('product:change', () => {
+		page.catalogue = productData.products.map((product) => {
 		const card = new CardUI(cloneTemplate(cardCatalogTemplate), {
 			onClick: () => {
-				events.emit('card:selected', product);
+				events.emit('card:select', product);
 			},
 		});
 		return card.render({
@@ -59,7 +55,7 @@ events.on('card:change', () => {
 	});
 });
 
-events.on('card:selected', (product: IProduct) => {
+events.on('card:select', (product: IProduct) => {
 	productData.savePreview(product);
 });
 
@@ -80,7 +76,7 @@ events.on('preview:change', (product: IProduct) => {
 			image: product.image,
 			price: product.price,
 			title: product.title,
-			buttonText: basketData.getButtonState(product),
+			button: basketData.getButtonState(product),
 		}),
 	});
 });
@@ -98,16 +94,16 @@ events.on('basket:open', () => {
 events.on('basket:change', () => {
 	page.counter = basketData.products.length;
 	basket.total = basketData.getProductsCost();
-	basket.items = basketData.products.map((basketCard, index) => {
+	basket.items = basketData.products.map((card, index) => {
 		const newBasketCard = new CardUI(cloneTemplate(cardBasketTemplate), {
 			onClick: () => {
-				basketData.removeFromBasket(basketCard);
+				basketData.removeFromBasket(card);
 			},
 		});
 		newBasketCard.index = index + 1;
 		return newBasketCard.render({
-			title: basketCard.title,
-			price: basketCard.price,
+			title: card.title,
+			price: card.price,
 		});
 	});
 });
@@ -122,7 +118,7 @@ events.on('modal:close', () => {
 
 events.on('order:open', () => {
 	modal.render({
-		content: orderForm.render({
+		content: deliveryForm.render({
 			address: '',
 			valid: false,
 			errors: [],
@@ -131,7 +127,7 @@ events.on('order:open', () => {
 });
 
 events.on(
-	/^order\..*:change/,
+	/^order\..*:input/,
 	(data: {
 		field: keyof Pick<IOrder, 'address' | 'phone' | 'email'>;
 		value: string;
@@ -141,9 +137,9 @@ events.on(
 );
 
 events.on(
-	'order:change',
+	'order:input',
 	(data: { payment: TPayment; button: HTMLElement }) => {
-		orderForm.togglePayment(data.button);
+		deliveryForm.togglePayment(data.button);
 		orderData.setPayment(data.payment);
 		orderData.validateOrder();
 	}
@@ -152,8 +148,8 @@ events.on(
 events.on('errors:change', (errors: Partial<IOrder>) => {
 	const { email, phone, address, payment } = errors;
 
-	orderForm.valid = !(payment || address);
-	orderForm.errors = [payment, address].filter(Boolean).join('; ');
+	deliveryForm.valid = !(payment || address);
+	deliveryForm.errors = [payment, address].filter(Boolean).join('; ');
 
 	contactForm.valid = !(email || phone);
 	contactForm.errors = [email, phone].filter(Boolean).join('; ');

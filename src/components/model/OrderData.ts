@@ -4,7 +4,8 @@ import { IEvents } from '../base/events';
 export class OrderData implements IOrderData {
 	protected _formErrors: TFormErrors;
 	protected _order: IOrder = {
-		order: [],
+		items: [],
+		total: 0,
 		address: '',
 		payment: '',
         email: '',
@@ -55,9 +56,10 @@ export class OrderData implements IOrderData {
 	}
 	clearOrder() {
 		this._order = {
-			order: [],
+			items: [],
+			total: 0,
 			email: '',
-			phone: '',
+			phone: '',	
 			address: '',
 			payment: '',
 		};
