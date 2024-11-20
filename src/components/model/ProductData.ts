@@ -13,13 +13,13 @@ export class ProductData implements IProductData {
 	}
 	setProducts(products: IProduct[]) {
 		this._products = products;
-		this.events.emit('card:change');
+		this.events.emit('product:change');
 	}
 	getProducts(): IProduct[] {
 		return this._products;
 	}
 	getProduct(id: string) {
-		return this.products.find((product) => product.id === id) || null;
+		return this._products.find((product) => product.id === id) || null;
 	}
 	savePreview(product: IProduct): void {
 		this._preview = product.id;

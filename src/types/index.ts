@@ -44,7 +44,7 @@ export interface IProductData {
 
 // Интерфейс корзины
 export interface IBasket {
-    items: TBasketProduct[];
+    items: HTMLElement[];
     total: number | null;
 }
 
@@ -56,7 +56,7 @@ export interface IBasketData {
     getButtonState(product: TBasketProduct): string;
 	getProductsCost(): number;
 	clearBasket(): void;
-	//processBasketToOrder(orderData: IOrderData): void;
+	processBasketToOrder(orderData: IOrderData): void;
 }
 
 // Интерфейс заказа
@@ -74,10 +74,11 @@ export interface IOrderData {
 	formErrors: TFormErrors;
 	order: IOrder;
 	setPayment(value: string): void;
-    setDeliveryAddress(value: string): void;
+    setAddress(value: string): void;
 	setEmail(value: string): void;
     setPhone(value: string): void;
 	setOrderField(field: keyof TOrderInput, value: string): void;
+	setOrderField(field: keyof IOrder, value: IOrder[keyof IOrder]): void;
 	validateOrder(): boolean;
 	clearOrder(): void;
 }

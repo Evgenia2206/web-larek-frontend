@@ -23,7 +23,7 @@ export class OrderData implements IOrderData {
 	setPayment(value: TPayment) {
 		this._order.payment = value;
 	}
-    setDeliveryAddress(value: string) {
+	setAddress(value: string) {
 		this._order.address = value;
 	}
 	setEmail(value: string) {

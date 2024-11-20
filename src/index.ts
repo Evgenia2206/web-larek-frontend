@@ -30,12 +30,11 @@ const basketTemplate = ensureElement<HTMLTemplateElement>('#basket');
 const orderTemplate = ensureElement<HTMLTemplateElement>('#order');
 const contactsTemplate = ensureElement<HTMLTemplateElement>('#contacts');
 const modalContainerTemplate = ensureElement<HTMLTemplateElement>('#modal-container');
-const body = document.body;
 
 const page = new MainPageUI(document.body, events);
 const modal = new ModalUI(modalContainerTemplate, events);
 const basket = new BasketUI(cloneTemplate(basketTemplate), events);
-const contactForm = new OrderContactsUI(cloneTemplate(contactsTemplate), events);
+const contactsForm = new OrderContactsUI(cloneTemplate(contactsTemplate), events);
 const deliveryForm = new OrderDeliveryUI(cloneTemplate(orderTemplate), events);
 
 events.on('product:change', () => {
@@ -64,7 +63,6 @@ events.on('preview:change', (product: IProduct) => {
 		onClick: () => {
 			events.emit('card:basket', product);
 			events.emit('preview:change', product);
-			modal.close();
 		},
 	});
 
@@ -119,17 +117,17 @@ events.on('modal:close', () => {
 events.on('order:open', () => {
 	modal.render({
 		content: deliveryForm.render({
-			address: '',
-			valid: false,
-			errors: [],
+			payment: orderData.order.payment,
+			address: orderData.order.address,
 		}),
 	});
+	orderData.validateOrder();
 });
 
 events.on(
 	/^order\..*:input/,
 	(data: {
-		field: keyof Pick<IOrder, 'address' | 'phone' | 'email'>;
+		field: keyof Pick<IOrder, 'payment' | 'address' | 'phone' | 'email'>;
 		value: string;
 	}) => {
 		orderData.setOrderField(data.field, data.value);
@@ -148,26 +146,25 @@ events.on(
 events.on('errors:change', (errors: Partial<IOrder>) => {
 	const { email, phone, address, payment } = errors;
 
-	deliveryForm.valid = !(payment || address);
-	deliveryForm.errors = [payment, address].filter(Boolean).join('; ');
+	deliveryForm.valid = !payment && !address;
+	deliveryForm.errors = Object.values({payment, address}).filter(i => !!i).join('; ');
 
-	contactForm.valid = !(email || phone);
-	contactForm.errors = [email, phone].filter(Boolean).join('; ');
+	contactsForm.valid = !email && !phone;
+	contactsForm.errors = Object.values({email, phone}).filter(i => !!i).join('; ');
 });
 
 events.on('order:submit', () => {
 	modal.render({
-		content: contactForm.render({
-			phone: '',
-			email: '',
-			valid: false,
-			errors: [],
+		content: contactsForm.render({
+			phone: orderData.order.phone,
+			email: orderData.order.email,
 		}),
 	});
+	orderData.validateOrder();
 });
 
-/*events.on('contacts:submit', () => {
-	basketData.sendBasketToOrder(orderData);
+events.on('order:process', () => {
+	basketData.processBasketToOrder(orderData);
 
 	api
 		.orderProducts(orderData.order)
@@ -192,18 +189,12 @@ events.on('order:submit', () => {
 				'Произошла ошибка при отправке заказа. Пожалуйста, попробуйте позже.'
 			);
 		});
-});*/
+});
 
-api
-	.getProducts()
+api.getProducts()
 	.then((response) => {
-		Array.isArray(response)
-			? productData.setProducts(response)
-			: console.error('Получен некорректный список продуктов', response);
+		productData.setProducts(response)
 	})
 	.catch((error) => {
-		console.error(`Произошла ошибка при получении списка продуктов: ${error}`);
-		alert(
-			'Произошла ошибка при получении списка продуктов. Пожалуйста, попробуйте позже.'
-		);
+		console.error(error);
 	});

@@ -1,5 +1,5 @@
 import { IEvents } from '../base/events';
-import { IBasketData, TBasketProduct } from '../../types/index';
+import { IBasketData, IOrderData, TBasketProduct } from '../../types/index';
 
 export class BasketData implements IBasketData {
 	protected _products: TBasketProduct[] = [];
@@ -12,13 +12,13 @@ export class BasketData implements IBasketData {
 	}
 	addToBasket(product: TBasketProduct) {
 		this._products.push(product);
-		this.events.emit('basket:count');
+		this.events.emit('basket:change');
 	}
 	removeFromBasket(product: TBasketProduct) {
 		this._products = this._products.filter(
 			(_product) => _product.id !== product.id
 		);
-		this.events.emit('basket:count');
+		this.events.emit('basket:change');
 	}
 	isBasketProduct(product: TBasketProduct) {
 		return !this.products.some((card) => card.id === product.id)
@@ -46,10 +46,11 @@ export class BasketData implements IBasketData {
 	}
 	clearBasket() {
 		this._products = [];
-		this.events.emit('basket:count');
+		this.events.emit('basket:change');
 	}
-	/*processBasketToOrder(orderData: IOrder) {
+	processBasketToOrder(orderData: IOrderData) {
 		const orderProducts = this._products.map((product) => product.id);
-		order = orderProducts;
-	}*/
+		orderData.setOrderField('items', orderProducts);
+		orderData.setOrderField('total', this.getProductsCost());
+	}
 }

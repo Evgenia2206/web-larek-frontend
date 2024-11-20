@@ -13,21 +13,21 @@ export class FormUI<T> extends Component<IFormState> {
         this._submit = ensureElement<HTMLButtonElement>('button[type=submit]', this.container);
         this._errors = ensureElement<HTMLElement>('.form__errors', this.container);
 
-        this.container.addEventListener('input', (e: Event) => {
-            const target = e.target as HTMLInputElement;
+        this.container.addEventListener('input', (event: Event) => {
+            const target = event.target as HTMLInputElement;
             const field = target.name as keyof T;
             const value = target.value;
             this.onInputChange(field, value);
         });
 
-        this.container.addEventListener('submit', (e: Event) => {
-            e.preventDefault();
+        this.container.addEventListener('submit', (events: Event) => {
+            events.preventDefault();
             this.events.emit(`${this.container.name}:submit`);
         });
     }
 
     protected onInputChange(field: keyof T, value: string) {
-        this.events.emit(`${this.container.name}.${String(field)}:change`, {
+        this.events.emit(`${this.container.name}.${String(field)}:input`, {
             field,
             value
         });
@@ -41,11 +41,10 @@ export class FormUI<T> extends Component<IFormState> {
         this.setText(this._errors, value);
     }
 
-    render(state: Partial<T> & IFormState) {
+    render(state: Partial<T> & Partial<IFormState>) {
         const {valid, errors, ...inputs} = state;
         super.render({valid, errors});
         Object.assign(this, inputs);
         return this.container;
-
     }
 }

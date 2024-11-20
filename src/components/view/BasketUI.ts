@@ -11,7 +11,7 @@ export class BasketUI extends Component<IBasket> {
 	constructor(container: HTMLElement, protected events: IEvents) {
 		super(container);
 
-		this._products = ensureElement<HTMLElement>(`.basket__list`, this.container);
+		this._products = this.container.querySelector('.basket__list'); 
 		this._total = this.container.querySelector(`.basket__price`);
 		this._button = this.container.querySelector(`.basket__button`);
 
