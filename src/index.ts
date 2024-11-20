@@ -125,16 +125,6 @@ events.on('order:open', () => {
 });
 
 events.on(
-	/^order\..*:input/,
-	(data: {
-		field: keyof Pick<IOrder, 'payment' | 'address' | 'phone' | 'email'>;
-		value: string;
-	}) => {
-		orderData.setOrderField(data.field, data.value);
-	}
-);
-
-events.on(
 	'order:input',
 	(data: { payment: TPayment; button: HTMLElement }) => {
 		deliveryForm.togglePayment(data.button);
@@ -142,6 +132,14 @@ events.on(
 		orderData.validateOrder();
 	}
 );
+
+events.on(/^order\..*:input/, (data: { field: keyof Pick<IOrder, 'payment' | 'address'>; value: string }) => {
+    orderData.setOrderField(data.field, data.value);
+});
+
+events.on(/^contacts\..*:input/, (data: { field: keyof Pick<IOrder, 'phone' | 'email'>; value: string }) => {
+    orderData.setOrderField(data.field, data.value);
+});
 
 events.on('errors:change', (errors: Partial<IOrder>) => {
 	const { email, phone, address, payment } = errors;
@@ -181,6 +179,7 @@ events.on('order:process', () => {
 					total: result.total,
 				}),
 			});
+			deliveryForm.resetPayment();
 		})
 
 		.catch((error) => {
